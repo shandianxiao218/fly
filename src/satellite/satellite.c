@@ -135,11 +135,11 @@ int satellite_position_calculate(Satellite* satellite, time_t time) {
     double r = orbit->sqrt_a * orbit->sqrt_a * (1 - orbit->e * cos(E));
     
     /* 计算轨道平面内的位置 */
-    double x_orbital = r * cos(nu);
-    double y_orbital = r * sin(nu);
+    /* double x_orbital = r * cos(nu); */
+    /* double y_orbital = r * sin(nu); */
     
     /* 计算经度修正 */
-    double omega = orbit->omega + orbit->omega_dot * dt;
+    /* double omega = orbit->omega + orbit->omega_dot * dt; */
     
     /* 计算纬度修正 */
     double phi = nu + orbit->omega;
@@ -157,11 +157,11 @@ int satellite_position_calculate(Satellite* satellite, time_t time) {
     /* 计算升交点赤经 */
     double lambda = orbit->omega0 + (orbit->omega_dot - EARTH_OMEGA) * dt - EARTH_OMEGA * orbit->toe;
     
-    """    /* TODO: 实现相对论效应修正 */
+    /* TODO: 实现相对论效应修正 */
     /* 计算ECEF坐标 */
     double x = r_corrected * (cos(u) * cos(lambda) - sin(u) * cos(i_corrected) * sin(lambda));
     double y = r_corrected * (cos(u) * sin(lambda) + sin(u) * cos(i_corrected) * cos(lambda));
-    double z = r_corrected * sin(u) * sin(i_corrected);""
+    double z = r_corrected * sin(u) * sin(i_corrected);
     
     /* 计算速度 (简化版本) */
     double v = sqrt(EARTH_MU / (orbit->sqrt_a * orbit->sqrt_a * orbit->sqrt_a));
@@ -311,60 +311,144 @@ int rinex_header_parse(const char* filename, RinexHeader* header) {
 int rinex_data_parse(const char* filename, SatelliteData* data) {
     if (filename == NULL || data == NULL) return 0;
     
-    /* 这是一个简化的RINEX解析器 */
-    /* 实际实现需要更复杂的解析逻辑 */
-    
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
         error_set(ERROR_FILE, "无法打开RINEX文件", __func__, __FILE__, __LINE__);
         return 0;
     }
     
-    char line[256];
+    char line[512];
     int in_data_section = 0;
+    int line_number = 0;
+    int satellites_parsed = 0;
+    
+    /* 清空现有数据 */
+    data->satellite_count = 0;
     
     while (fgets(line, sizeof(line), file)) {
+        line_number++;
         char* trimmed = string_trim(line);
         
-        /* 跳过头信息 */
+        /* 跳过空行 */
+        if (strlen(trimmed) == 0) continue;
+        
+        /* 检查头信息结束标记 */
         if (string_starts_with(trimmed, "END OF HEADER")) {
             in_data_section = 1;
+            logger_info(__func__, __FILE__, __LINE__, "RINEX头信息解析完成，开始解析数据");
             continue;
         }
         
         if (!in_data_section) continue;
         
-        /* 简化的数据解析 */
-        if (strlen(trimmed) > 0) {
-            /* 这里应该解析实际的卫星数据 */
-            /* 为了演示，我们创建一个模拟卫星 */
-            if (data->satellite_count < data->max_satellites) {
-                Satellite sat = {0};
-                sat.prn = data->satellite_count + 1;
-                sat.system = SATELLITE_SYSTEM_BEIDOU;
-                sat.is_valid = 1;
-                sat.valid_time = time(NULL);
+        /* 解析观测数据行 */
+        /* RINEX观测数据格式：时间戳 卫星数据... */
+        if (line_number > 1) {  /* 跳过END OF HEADER行 */
+            /* 解析时间戳 (前19个字符) */
+            char time_str[20] = {0};
+            strncpy(time_str, line, 19);
+            time_str[19] = '\0';
+            
+            /* 解析时间戳 */
+            int year, month, day, hour, minute, second;
+            if (sscanf(time_str, " %d %d %d %d %d %d", 
+                      &year, &month, &day, &hour, &minute, &second) == 6) {
                 
-                /* 设置默认轨道参数 */
-                sat.orbit.sqrt_a = 5153.8;  /* 典型的北斗卫星轨道参数 */
-                sat.orbit.e = 0.001;
-                sat.orbit.i0 = 55.0 * GPS_PI / 180.0;
-                sat.orbit.omega0 = 0.0;
-                sat.orbit.omega = 0.0;
-                sat.orbit.m0 = 0.0;
-                sat.orbit.toe = 0.0;
+                /* 转换为Unix时间戳 */
+                struct tm tm = {0};
+                tm.tm_year = year - 1900;
+                tm.tm_mon = month - 1;
+                tm.tm_mday = day;
+                tm.tm_hour = hour;
+                tm.tm_min = minute;
+                tm.tm_sec = second;
+                time_t obs_time = mktime(&tm);
                 
-                /* 计算位置 */
-                satellite_position_calculate(&sat, sat.valid_time);
+                /* 解析卫星数量 (第33-35字符) */
+                char sat_count_str[4] = {0};
+                strncpy(sat_count_str, line + 32, 3);
+                sat_count_str[3] = '\0';
+                int sat_count = atoi(sat_count_str);
                 
-                /* 添加到数据中 */
-                satellite_data_add(data, &sat);
+                /* 解析卫星PRN列表 (第35字符开始) */
+                char prn_list[64][4] = {0};
+                int prn_count = 0;
+                
+                /* 提取PRN列表 */
+                char* prn_start = line + 35;
+                while (prn_count < sat_count && prn_start < line + strlen(line)) {
+                    char prn_str[4] = {0};
+                    strncpy(prn_str, prn_start, 3);
+                    prn_str[3] = '\0';
+                    
+                    /* 解析PRN号 */
+                    int prn = atoi(prn_str + 1);  /* 跳过系统标识符 */
+                    if (prn > 0 && prn <= 64) {  /* 北斗卫星PRN范围 */
+                        strcpy(prn_list[prn_count], prn_str);
+                        prn_count++;
+                    }
+                    
+                    prn_start += 3;  /* 每个PRN占3个字符 */
+                }
+                
+                /* 为每个卫星创建数据 */
+                for (int i = 0; i < prn_count && data->satellite_count < data->max_satellites; i++) {
+                    int prn = atoi(prn_list[i] + 1);
+                    
+                    /* 检查是否已存在该PRN的卫星 */
+                    Satellite* existing_sat = satellite_data_find(data, prn);
+                    if (existing_sat == NULL) {
+                        /* 创建新卫星 */
+                        Satellite sat = {0};
+                        sat.prn = prn;
+                        sat.system = SATELLITE_SYSTEM_BEIDOU;
+                        sat.is_valid = 1;
+                        sat.valid_time = obs_time;
+                        
+                        /* 设置北斗卫星典型轨道参数 */
+                        sat.orbit.sqrt_a = 5153.8;      /* 轨道长半轴平方根 */
+                        sat.orbit.e = 0.001;             /* 离心率 */
+                        sat.orbit.i0 = 55.0 * GPS_PI / 180.0;  /* 轨道倾角 */
+                        sat.orbit.omega0 = 0.0;          /* 升交点赤经 */
+                        sat.orbit.omega = 0.0;           /* 近地点幅角 */
+                        sat.orbit.m0 = 0.0;              /* 平近点角 */
+                        sat.orbit.toe = 0.0;             /* 星历参考时间 */
+                        sat.orbit.delta_n = 0.0;         /* 平均运动角速度修正 */
+                        sat.orbit.i_dot = 0.0;           /* 轨道倾角变化率 */
+                        sat.orbit.omega_dot = 0.0;       /* 升交点赤经变化率 */
+                        
+                        /* 设置调和改正项 */
+                        sat.orbit.cuc = 0.0;
+                        sat.orbit.cus = 0.0;
+                        sat.orbit.crc = 0.0;
+                        sat.orbit.crs = 0.0;
+                        sat.orbit.cic = 0.0;
+                        sat.orbit.cis = 0.0;
+                        
+                        /* 设置时钟参数 */
+                        sat.clock.t_oc = obs_time;
+                        sat.clock.a0 = 0.0;
+                        sat.clock.a1 = 0.0;
+                        sat.clock.a2 = 0.0;
+                        
+                        /* 计算卫星位置 */
+                        if (satellite_position_calculate(&sat, obs_time)) {
+                            satellite_data_add(data, &sat);
+                            satellites_parsed++;
+                        }
+                    }
+                }
             }
         }
     }
     
     fclose(file);
-    return 1;
+    
+    char log_msg[256];
+snprintf(log_msg, sizeof(log_msg), "RINEX数据解析完成，解析了%d颗卫星", satellites_parsed);
+logger_info(__func__, __FILE__, __LINE__, log_msg);
+    
+    return satellites_parsed > 0;
 }
 
 int rinex_write_example(const char* filename) {

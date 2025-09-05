@@ -9,7 +9,7 @@
 #include "../../src/aircraft/aircraft.h"
 #include "../../src/obstruction/obstruction.h"
 #include "../../src/utils/utils.h"
-/* #include "../../src/web/web_server.h" */
+#include "../../src/web/http_server.h"
 
 /* 前向声明测试函数 */
 void TestSatelliteDataCreate(CuTest* tc);
@@ -600,8 +600,8 @@ void TestUtilsMemory(CuTest* tc) {
     CuAssertPtrNotNull(tc, str);
     CuAssertStrEquals(tc, "Test String", str);
     
-    safe_free(&str);
-    safe_free(&realloc_ptr);
+    safe_free((void**)&str);
+    safe_free((void**)&realloc_ptr);
     CuAssertPtrEquals(tc, NULL, str);
     CuAssertPtrEquals(tc, NULL, realloc_ptr);
 }
@@ -636,10 +636,7 @@ void TestUtilsLogger(CuTest* tc) {
 /* Web模块测试函数实现 */
 void TestWebServerCreate(CuTest* tc) {
     HttpServerConfig config = {0};
-    config.port = 8080;
-    config.max_connections = 10;
-    config.timeout = 30;
-    strcpy(config.host, "127.0.0.1");
+    http_server_config_init(&config);
     
     HttpServer* server = http_server_create(&config);
     CuAssertPtrNotNull(tc, server);
@@ -651,10 +648,8 @@ void TestWebServerCreate(CuTest* tc) {
 
 void TestWebServerStart(CuTest* tc) {
     HttpServerConfig config = {0};
+    http_server_config_init(&config);
     config.port = 8081; /* 使用不同端口避免冲突 */
-    config.max_connections = 10;
-    config.timeout = 30;
-    strcpy(config.host, "127.0.0.1");
     
     HttpServer* server = http_server_create(&config);
     CuAssertPtrNotNull(tc, server);
@@ -674,7 +669,7 @@ void TestHttpRequestParse(CuTest* tc) {
     int result = http_request_parse(raw_request, request);
     
     if (result == 1) {
-        CuAssertIntEquals(tc, HTTP_METHOD_GET, request->method);
+        CuAssertIntEquals(tc, HTTP_GET, request->method);
         CuAssertStrEquals(tc, "/api/status", request->path);
     }
     

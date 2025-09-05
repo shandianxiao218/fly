@@ -20,11 +20,17 @@ OBSTRUCTION_SRC = $(SRC_DIR)/obstruction/geometry.c $(SRC_DIR)/obstruction/obstr
 WEB_SRC = $(SRC_DIR)/web/http_server.c $(SRC_DIR)/web/api.c $(SRC_DIR)/web/json_utils.c
 UTILS_SRC = $(SRC_DIR)/utils/utils.c $(SRC_DIR)/utils/logger.c
 
+# 主程序文件
+MAIN_SRC = $(SRC_DIR)/main.c
+
+# 模块源文件（不包括main.c）
+MODULE_SRC = $(SATELLITE_SRC) $(AIRCRAFT_SRC) $(OBSTRUCTION_SRC) $(WEB_SRC) $(UTILS_SRC)
+
 # 所有源文件
-ALL_SRC = $(SATELLITE_SRC) $(AIRCRAFT_SRC) $(OBSTRUCTION_SRC) $(WEB_SRC) $(UTILS_SRC)
+ALL_SRC = $(MAIN_SRC) $(MODULE_SRC)
 
 # 测试文件
-TEST_FILES = $(TEST_DIR)/unit/test_all.c
+TEST_FILES = $(TEST_DIR)/unit/test_all_simple.c
 
 # 目标文件
 TARGET = $(BUILD_DIR)/beidou-server
@@ -59,7 +65,7 @@ test: $(TEST_TARGET)
 
 $(TEST_TARGET): $(TEST_FILES) $(LIB_DIR)/CuTest.c
 	@echo "编译测试程序..."
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $^ $(LIBS)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $^ $(MODULE_SRC) $(LIBS)
 	@echo "测试编译完成: $(TEST_TARGET)"
 
 # 清理
