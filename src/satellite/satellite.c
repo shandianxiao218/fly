@@ -157,10 +157,11 @@ int satellite_position_calculate(Satellite* satellite, time_t time) {
     /* 计算升交点赤经 */
     double lambda = orbit->omega0 + (orbit->omega_dot - EARTH_OMEGA) * dt - EARTH_OMEGA * orbit->toe;
     
+    """    /* TODO: 实现相对论效应修正 */
     /* 计算ECEF坐标 */
     double x = r_corrected * (cos(u) * cos(lambda) - sin(u) * cos(i_corrected) * sin(lambda));
     double y = r_corrected * (cos(u) * sin(lambda) + sin(u) * cos(i_corrected) * cos(lambda));
-    double z = r_corrected * sin(u) * sin(i_corrected);
+    double z = r_corrected * sin(u) * sin(i_corrected);""
     
     /* 计算速度 (简化版本) */
     double v = sqrt(EARTH_MU / (orbit->sqrt_a * orbit->sqrt_a * orbit->sqrt_a));
