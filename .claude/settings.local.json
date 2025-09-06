@@ -26,7 +26,16 @@
       "Bash(./test_coordinate:*)",
       "Bash(sed:*)",
       "Bash(./build/web_server_simple_test:*)",
-      "Bash(./build/api_test:*)"
+      "Bash(./build/api_test:*)",
+      "Bash(git add:*)",
+      "Bash(./test_websocket_minimal:*)",
+      "Bash(./test_websocket_simple_compile:*)",
+      "Bash(./test_websocket_standalone:*)",
+      "Bash(dir:*)",
+      "Bash(chmod:*)",
+      "Bash(python:*)",
+      "Bash(bash:*)",
+      "Bash(start_server.bat)"
     ],
     "deny": [],
     "ask": []

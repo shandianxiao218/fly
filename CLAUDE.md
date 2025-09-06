@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## AI Guidance
-
+* 所有回答使用中文
 * Ignore GEMINI.md and GEMINI-*.md files
 * To save main context space, for code searches, inspections, troubleshooting or analysis, use code-searcher subagent where appropriate - giving the subagent full context background for the task(s) you assign it.
 * After receiving tool results, carefully reflect on their quality and determine optimal next steps before proceeding. Use your thinking to plan and iterate based on this new information, and then take the best next action.
@@ -29,6 +29,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - 遇到问题或阻塞时
   - 每周项目状态更新时
   - 模块间依赖关系发生变化时
+* 目录结构保存在CLAUDE-decisions.md中，保持该文件与项目一致
+* 所有的测试报告集中TEST-REPORT.md文件中，不要新建文件
+* 认证检查生成的执行文件的执行情况，有错误就改，不要直接跳过
 * 
 ## Memory Bank System
 
