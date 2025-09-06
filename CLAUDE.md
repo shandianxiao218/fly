@@ -15,13 +15,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 * NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
 * When you update or modify core context files, also update markdown documentation and memory bank
 * When asked to commit changes, exclude CLAUDE.md and CLAUDE-*.md referenced memory bank system files from any commits. Never delete these files.
-* 工程的状态随时更新同步到“工程状态.md”文档中，每次更新要附上修改日期和时间；
 * 增加必要的注释，注释用中文，格式满足doxygen的要求；
+* 函数参数是物理量的，必须标注单位。函数内部变量是物理量的，也必须标注单位。
 * 自动调用相应的subagent进行工作；
 * 用code-reviewer对代码进行检查；
 * 写代码用相应语言专用的subagent进行编写；
 * 调试代码用debugger代理；
 * 软件测试的过程用debug_log.md进行记录
+* 软件需要打印必要的调试信息，调试信息的级别可控
 * 需求追踪状态必须实时更新到specs/REQUIREMENTS-TRACKING.md，更新时机包括：
   - 完成功能实现时
   - 通过测试验证时  

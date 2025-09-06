@@ -1,0 +1,58 @@
+[2025-09-06 20:14:58] [INFO] [src/utils/logger.c:31] logger_init: 日志系统初始化完成
+[2025-09-06 20:14:58] [INFO] [src/web/simple_http_server.c:58] http_server_start: HTTP服务器启动
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:13] api_process_request: 处理API请求: GET /api/status
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:38] api_handle_get: 处理GET请求: /api/status
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:108] api_get_status: 获取系统状态
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:13] api_process_request: 处理API请求: GET /api/satellite
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:38] api_handle_get: 处理GET请求: /api/satellite
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:142] api_get_satellite: 获取卫星数据
+[2025-09-06 20:14:58] [ERROR] [src/web/simple_api.c:145] api_get_satellite: 卫星数据不可用
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:13] api_process_request: 处理API请求: GET /api/trajectory
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:38] api_handle_get: 处理GET请求: /api/trajectory
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:172] api_get_trajectory: 获取轨迹数据
+[2025-09-06 20:14:58] [ERROR] [src/web/simple_api.c:175] api_get_trajectory: 轨迹数据不可用
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:13] api_process_request: 处理API请求: GET /api/analysis
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:38] api_handle_get: 处理GET请求: /api/analysis
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:208] api_get_analysis: 获取分析结果
+[2025-09-06 20:14:58] [ERROR] [src/web/simple_api.c:212] api_get_analysis: 分析所需数据不完整
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:13] api_process_request: 处理API请求: POST /api/trajectory
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:59] api_handle_post: 处理POST请求: /api/trajectory
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:242] api_post_trajectory: 生成轨迹数据
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:252] api_post_trajectory: 收到轨迹生成请求: {"action":"generate","duration":3600}
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:13] api_process_request: 处理API请求: POST /api/analysis
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:59] api_handle_post: 处理POST请求: /api/analysis
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:276] api_post_analysis: 执行分析计算
+[2025-09-06 20:14:58] [ERROR] [src/web/simple_api.c:280] api_post_analysis: 分析所需数据不完整
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:13] api_process_request: 处理API请求: GET /api/unknown
+[2025-09-06 20:14:58] [INFO] [src/web/simple_api.c:38] api_handle_get: 处理GET请求: /api/unknown
+[2025-09-06 20:14:58] [ERROR] [src/web/simple_api.c:50] api_handle_get: 未知的GET路径: /api/unknown
+[2025-09-06 20:14:58] [INFO] [src/web/simple_http_server.c:70] http_server_stop: HTTP服务器停止
+[2025-09-06 20:16:03] [INFO] [src/utils/logger.c:31] logger_init: 日志系统初始化完成
+[2025-09-06 20:16:03] [INFO] [src/web/simple_http_server.c:58] http_server_start: HTTP服务器启动
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:13] api_process_request: 处理API请求: GET /api/status
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:38] api_handle_get: 处理GET请求: /api/status
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:108] api_get_status: 获取系统状态
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:13] api_process_request: 处理API请求: GET /api/satellite
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:38] api_handle_get: 处理GET请求: /api/satellite
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:142] api_get_satellite: 获取卫星数据
+[2025-09-06 20:16:03] [ERROR] [src/web/simple_api.c:145] api_get_satellite: 卫星数据不可用
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:13] api_process_request: 处理API请求: GET /api/trajectory
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:38] api_handle_get: 处理GET请求: /api/trajectory
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:172] api_get_trajectory: 获取轨迹数据
+[2025-09-06 20:16:03] [ERROR] [src/web/simple_api.c:175] api_get_trajectory: 轨迹数据不可用
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:13] api_process_request: 处理API请求: GET /api/analysis
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:38] api_handle_get: 处理GET请求: /api/analysis
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:208] api_get_analysis: 获取分析结果
+[2025-09-06 20:16:03] [ERROR] [src/web/simple_api.c:212] api_get_analysis: 分析所需数据不完整
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:13] api_process_request: 处理API请求: POST /api/trajectory
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:59] api_handle_post: 处理POST请求: /api/trajectory
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:242] api_post_trajectory: 生成轨迹数据
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:252] api_post_trajectory: 收到轨迹生成请求: {"action":"generate","duration":3600}
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:13] api_process_request: 处理API请求: POST /api/analysis
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:59] api_handle_post: 处理POST请求: /api/analysis
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:276] api_post_analysis: 执行分析计算
+[2025-09-06 20:16:03] [ERROR] [src/web/simple_api.c:280] api_post_analysis: 分析所需数据不完整
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:13] api_process_request: 处理API请求: GET /api/unknown
+[2025-09-06 20:16:03] [INFO] [src/web/simple_api.c:38] api_handle_get: 处理GET请求: /api/unknown
+[2025-09-06 20:16:03] [ERROR] [src/web/simple_api.c:50] api_handle_get: 未知的GET路径: /api/unknown
+[2025-09-06 20:16:03] [INFO] [src/web/simple_http_server.c:70] http_server_stop: HTTP服务器停止

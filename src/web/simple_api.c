@@ -1,11 +1,13 @@
-#include "api.h"
+#include "simple_http_server.h"
+#include "simple_api.h"
 #include "../utils/utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
-int api_process_request(HttpRequest* request, HttpResponse* response, struct HttpServer* server) {
+/* =================== API处理函数 =================== */
+
+int api_process_request(HttpRequest* request, HttpResponse* response, HttpServer* server) {
     if (request == NULL || response == NULL || server == NULL) return 0;
     
     logger_log_format(LOG_LEVEL_INFO, __func__, __FILE__, __LINE__, "处理API请求: %s %s", 
@@ -30,7 +32,7 @@ int api_process_request(HttpRequest* request, HttpResponse* response, struct Htt
     }
 }
 
-int api_handle_get(HttpRequest* request, HttpResponse* response, struct HttpServer* server) {
+int api_handle_get(HttpRequest* request, HttpResponse* response, HttpServer* server) {
     if (request == NULL || response == NULL || server == NULL) return 0;
     
     logger_log_format(LOG_LEVEL_INFO, __func__, __FILE__, __LINE__, "处理GET请求: %s", request->path);
@@ -51,7 +53,7 @@ int api_handle_get(HttpRequest* request, HttpResponse* response, struct HttpServ
     }
 }
 
-int api_handle_post(HttpRequest* request, HttpResponse* response, struct HttpServer* server) {
+int api_handle_post(HttpRequest* request, HttpResponse* response, HttpServer* server) {
     if (request == NULL || response == NULL || server == NULL) return 0;
     
     logger_log_format(LOG_LEVEL_INFO, __func__, __FILE__, __LINE__, "处理POST请求: %s", request->path);
@@ -70,7 +72,7 @@ int api_handle_post(HttpRequest* request, HttpResponse* response, struct HttpSer
     }
 }
 
-int api_handle_put(HttpRequest* request, HttpResponse* response, struct HttpServer* server) {
+int api_handle_put(HttpRequest* request, HttpResponse* response, HttpServer* server) {
     if (request == NULL || response == NULL || server == NULL) return 0;
     
     logger_log_format(LOG_LEVEL_INFO, __func__, __FILE__, __LINE__, "处理PUT请求: %s", request->path);
@@ -80,7 +82,7 @@ int api_handle_put(HttpRequest* request, HttpResponse* response, struct HttpServ
     return 0;
 }
 
-int api_handle_delete(HttpRequest* request, HttpResponse* response, struct HttpServer* server) {
+int api_handle_delete(HttpRequest* request, HttpResponse* response, HttpServer* server) {
     if (request == NULL || response == NULL || server == NULL) return 0;
     
     logger_log_format(LOG_LEVEL_INFO, __func__, __FILE__, __LINE__, "处理DELETE请求: %s", request->path);
@@ -90,18 +92,19 @@ int api_handle_delete(HttpRequest* request, HttpResponse* response, struct HttpS
     return 0;
 }
 
-int api_handle_head(HttpRequest* request, HttpResponse* response, struct HttpServer* server) {
+int api_handle_head(HttpRequest* request, HttpResponse* response, HttpServer* server) {
     if (request == NULL || response == NULL || server == NULL) return 0;
     
     logger_log_format(LOG_LEVEL_INFO, __func__, __FILE__, __LINE__, "处理HEAD请求: %s", request->path);
     
-    /* HEAD请求处理逻辑 (只返回头，不返回体) */
+    /* HEAD请求处理逻辑 */
     http_response_set_error(response, 501, "Not Implemented");
     return 0;
 }
 
-/* 具体的API处理函数 */
-int api_get_status(HttpRequest* request, HttpResponse* response, struct HttpServer* server) {
+/* =================== 具体API实现 =================== */
+
+int api_get_status(HttpRequest* request, HttpResponse* response, HttpServer* server) {
     logger_log_format(LOG_LEVEL_INFO, __func__, __FILE__, __LINE__, "获取系统状态");
     
     /* 创建状态JSON */
@@ -118,11 +121,11 @@ int api_get_status(HttpRequest* request, HttpResponse* response, struct HttpServ
                           "\"version\":\"1.0.0\","
                           "\"timestamp\":%lld}",
                           server->status.is_running ? "running" : "stopped",
-                          uptime,
+                          (long long)uptime,
                           server->status.request_count,
                           server->status.error_count,
                           server->status.is_running,
-                          current_time);
+                          (long long)current_time);
     
     if (written >= sizeof(status_json)) {
         logger_log_format(LOG_LEVEL_ERROR, __func__, __FILE__, __LINE__, "状态JSON缓冲区不足");
@@ -135,7 +138,7 @@ int api_get_status(HttpRequest* request, HttpResponse* response, struct HttpServ
     return 1;
 }
 
-int api_get_satellite(HttpRequest* request, HttpResponse* response, struct HttpServer* server) {
+int api_get_satellite(HttpRequest* request, HttpResponse* response, HttpServer* server) {
     logger_log_format(LOG_LEVEL_INFO, __func__, __FILE__, __LINE__, "获取卫星数据");
     
     if (server->satellite_data == NULL) {
@@ -151,7 +154,7 @@ int api_get_satellite(HttpRequest* request, HttpResponse* response, struct HttpS
                           "\"reference_time\":%lld,"
                           "\"data_available\":%d}",
                           server->satellite_data->satellite_count,
-                          server->satellite_data->reference_time,
+                          (long long)server->satellite_data->reference_time,
                           server->satellite_data->satellite_count > 0);
     
     if (written >= sizeof(satellite_json)) {
@@ -165,7 +168,7 @@ int api_get_satellite(HttpRequest* request, HttpResponse* response, struct HttpS
     return 1;
 }
 
-int api_get_trajectory(HttpRequest* request, HttpResponse* response, struct HttpServer* server) {
+int api_get_trajectory(HttpRequest* request, HttpResponse* response, HttpServer* server) {
     logger_log_format(LOG_LEVEL_INFO, __func__, __FILE__, __LINE__, "获取轨迹数据");
     
     if (server->trajectory == NULL) {
@@ -184,8 +187,8 @@ int api_get_trajectory(HttpRequest* request, HttpResponse* response, struct Http
                           "\"max_altitude\":%.2f,"
                           "\"data_available\":%d}",
                           server->trajectory->point_count,
-                          server->trajectory->start_time,
-                          server->trajectory->end_time,
+                          (long long)server->trajectory->start_time,
+                          (long long)server->trajectory->end_time,
                           server->trajectory->total_distance,
                           server->trajectory->max_altitude,
                           server->trajectory->point_count > 0);
@@ -201,7 +204,7 @@ int api_get_trajectory(HttpRequest* request, HttpResponse* response, struct Http
     return 1;
 }
 
-int api_get_analysis(HttpRequest* request, HttpResponse* response, struct HttpServer* server) {
+int api_get_analysis(HttpRequest* request, HttpResponse* response, HttpServer* server) {
     logger_log_format(LOG_LEVEL_INFO, __func__, __FILE__, __LINE__, "获取分析结果");
     
     /* 检查必要数据 */
@@ -222,7 +225,7 @@ int api_get_analysis(HttpRequest* request, HttpResponse* response, struct HttpSe
                           1, /* 假设分析完成 */
                           server->satellite_data->satellite_count,
                           server->trajectory->point_count,
-                          time(NULL));
+                          (long long)time(NULL));
     
     if (written >= sizeof(analysis_json)) {
         logger_log_format(LOG_LEVEL_ERROR, __func__, __FILE__, __LINE__, "分析JSON缓冲区不足");
@@ -235,7 +238,7 @@ int api_get_analysis(HttpRequest* request, HttpResponse* response, struct HttpSe
     return 1;
 }
 
-int api_post_trajectory(HttpRequest* request, HttpResponse* response, struct HttpServer* server) {
+int api_post_trajectory(HttpRequest* request, HttpResponse* response, HttpServer* server) {
     logger_log_format(LOG_LEVEL_INFO, __func__, __FILE__, __LINE__, "生成轨迹数据");
     
     /* 解析请求体 */
@@ -256,7 +259,7 @@ int api_post_trajectory(HttpRequest* request, HttpResponse* response, struct Htt
                           "\"trajectory_id\":%d,"
                           "\"timestamp\":%lld}",
                           123, /* 模拟轨迹ID */
-                          time(NULL));
+                          (long long)time(NULL));
     
     if (written >= sizeof(response_json)) {
         logger_log_format(LOG_LEVEL_ERROR, __func__, __FILE__, __LINE__, "响应JSON缓冲区不足");
@@ -269,7 +272,7 @@ int api_post_trajectory(HttpRequest* request, HttpResponse* response, struct Htt
     return 1;
 }
 
-int api_post_analysis(HttpRequest* request, HttpResponse* response, struct HttpServer* server) {
+int api_post_analysis(HttpRequest* request, HttpResponse* response, HttpServer* server) {
     logger_log_format(LOG_LEVEL_INFO, __func__, __FILE__, __LINE__, "执行分析计算");
     
     /* 检查必要数据 */
@@ -288,7 +291,7 @@ int api_post_analysis(HttpRequest* request, HttpResponse* response, struct HttpS
                           "\"estimated_duration_ms\":500,"
                           "\"timestamp\":%lld}",
                           456, /* 模拟分析ID */
-                          time(NULL));
+                          (long long)time(NULL));
     
     if (written >= sizeof(response_json)) {
         logger_log_format(LOG_LEVEL_ERROR, __func__, __FILE__, __LINE__, "响应JSON缓冲区不足");
@@ -301,7 +304,7 @@ int api_post_analysis(HttpRequest* request, HttpResponse* response, struct HttpS
     return 1;
 }
 
-int api_post_upload(HttpRequest* request, HttpResponse* response, struct HttpServer* server) {
+int api_post_upload(HttpRequest* request, HttpResponse* response, HttpServer* server) {
     logger_log_format(LOG_LEVEL_INFO, __func__, __FILE__, __LINE__, "处理文件上传");
     
     /* 解析请求体 */
@@ -322,7 +325,7 @@ int api_post_upload(HttpRequest* request, HttpResponse* response, struct HttpSer
                           "\"file_size\":%d,"
                           "\"timestamp\":%lld}",
                           request->content_length,
-                          time(NULL));
+                          (long long)time(NULL));
     
     if (written >= sizeof(response_json)) {
         logger_log_format(LOG_LEVEL_ERROR, __func__, __FILE__, __LINE__, "响应JSON缓冲区不足");

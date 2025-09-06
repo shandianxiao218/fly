@@ -1,0 +1,2 @@
+[2025-09-06 20:11:52] [INFO] [src/utils/logger.c:31] logger_init: 日志系统初始化完成
+[2025-09-06 20:11:52] [INFO] [src/web/simple_http_server.c:58] http_server_start: HTTP服务器启动

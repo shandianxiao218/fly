@@ -35,6 +35,7 @@ TEST_FILES = $(TEST_DIR)/unit/test_all.c
 # 目标文件
 TARGET = $(BUILD_DIR)/beidou-server
 TEST_TARGET = $(BUILD_DIR)/test_runner
+WEB_TEST_TARGET = $(BUILD_DIR)/web_server_test
 
 # 默认目标
 all: setup build test
@@ -104,4 +105,18 @@ help:
 	@echo "  3. 重构优化代码"
 	@echo "  4. 提交代码"
 
-.PHONY: all setup build test clean run install help
+# 编译web服务器测试程序
+web_test: $(WEB_TEST_TARGET)
+
+$(WEB_TEST_TARGET): $(UTILS_SRC) $(WEB_SRC) web_server_test.c
+	@echo "编译web服务器测试程序..."
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $^ $(LIBS) -lpthread
+	@echo "web服务器测试程序编译完成: $@"
+
+# 运行web服务器测试程序
+run_web_test: $(WEB_TEST_TARGET)
+	@echo "运行web服务器测试程序..."
+	./$(WEB_TEST_TARGET) 8080 localhost
+
+.PHONY: all setup build test clean run install help web_test run_web_test

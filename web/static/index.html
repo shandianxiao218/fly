@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>北斗导航卫星可见性分析系统</title>
+    <meta name="description" content="北斗导航卫星可见性分析系统 - 实时监控和分析卫星可见性状态">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Three.js for 3D visualization -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-satellite"></i> 北斗卫星可见性分析
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" onclick="showDashboard()">
+                            <i class="fas fa-tachometer-alt"></i> 仪表盘
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showSatelliteView()">
+                            <i class="fas fa-satellite-dish"></i> 卫星视图
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showTrajectoryView()">
+                            <i class="fas fa-route"></i> 轨迹分析
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showAnalysisView()">
+                            <i class="fas fa-chart-line"></i> 可见性分析
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主容器 -->
+    <div class="container-fluid">
+        <!-- 系统状态栏 -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="status-item">
+                                    <i class="fas fa-server"></i>
+                                    <span>系统状态: </span>
+                                    <span id="systemStatus" class="badge bg-warning">检查中...</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="status-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span>最后更新: </span>
+                                    <span id="lastUpdate">--:--:--</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="status-item">
+                                    <i class="fas fa-satellite"></i>
+                                    <span>可见卫星: </span>
+                                    <span id="visibleSatellites">--</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="status-item">
+                                    <i class="fas fa-plane"></i>
+                                    <span>飞行器数量: </span>
+                                    <span id="aircraftCount">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主要内容区域 -->
+        <div class="row mt-3">
+            <!-- 左侧控制面板 -->
+            <div class="col-lg-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-cog"></i> 控制面板</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">自动刷新</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
+                                <label class="form-check-label" for="autoRefresh">启用自动刷新</label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">刷新间隔 (秒)</label>
+                            <select class="form-select" id="refreshInterval">
+                                <option value="1000">1秒</option>
+                                <option value="5000" selected>5秒</option>
+                                <option value="10000">10秒</option>
+                                <option value="30000">30秒</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">数据生成</label>
+                            <button class="btn btn-primary btn-sm w-100" onclick="generateData()">
+                                <i class="fas fa-plus"></i> 生成测试数据
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">显示选项</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="show3D" checked>
+                                <label class="form-check-label" for="show3D">3D 视图</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="showGrid" checked>
+                                <label class="form-check-label" for="showGrid">显示网格</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="showLabels" checked>
+                                <label class="form-check-label" for="showLabels">显示标签</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧主要内容 -->
+            <div class="col-lg-9">
+                <!-- 仪表盘视图 -->
+                <div id="dashboardView" class="view-section">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-chart-pie"></i> 卫星可见性分布</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="satellitePieChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-chart-line"></i> 可见性趋势</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="visibilityTrendChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-globe"></i> 3D 卫星视图</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="satellite3D" style="height: 400px; background: #000;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 卫星视图 -->
+                <div id="satelliteView" class="view-section" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-satellite-dish"></i> 卫星详细信息</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>卫星ID</th>
+                                            <th>经度 (°)</th>
+                                            <th>纬度 (°)</th>
+                                            <th>高度 (km)</th>
+                                            <th>可见性</th>
+                                            <th>信号强度</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="satelliteTable">
+                                        <tr>
+                                            <td colspan="6" class="text-center">加载中...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 轨迹视图 -->
+                <div id="trajectoryView" class="view-section" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-route"></i> 飞行轨迹分析</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="trajectoryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 分析视图 -->
+                <div id="analysisView" class="view-section" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-chart-bar"></i> 可见性分析结果</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="analysisChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-fire"></i> 遮挡分析热力图</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="heatmapChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 消息提示 -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="messageToast" class="toast" role="alert">
+            <div class="toast-header">
+                <strong class="me-auto">系统消息</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toastMessage">
+                消息内容
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="js/api.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

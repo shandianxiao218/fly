@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make:*)",
+      "Bash(gcc:*)",
+      "Bash(nm:*)",
+      "Bash(./build/test_runner:*)",
+      "Bash(./build/test_satellite:*)",
+      "Bash(./build/beidou-server.exe)",
+      "Bash(cmd:*)",
+      "Bash(/e/fly/build/beidou-server.exe)",
+      "Bash(/e/fly/build/test_satellite.exe)",
+      "Bash(/e/fly/build/test_runner.exe)",
+      "Bash(./test_aircraft:*)",
+      "Bash(dir \"E:\\fly\\src\")",
+      "Bash(./beidou-server)",
+      "Bash(find:*)",
+      "Bash(./build/test_aircraft.exe:*)",
+      "Bash(./build/test_obstruction_simple.exe:*)",
+      "Bash(./build/test_obstruction.exe:*)",
+      "Bash(echo:*)",
+      "Bash(./build/test_obstruction_simple:*)",
+      "Bash(./build/test_obstruction_only.exe:*)",
+      "Bash(dir tests)",
+      "Bash(gdb:*)",
+      "Bash(./test_coordinate:*)",
+      "Bash(sed:*)",
+      "Bash(./build/web_server_simple_test:*)",
+      "Bash(./build/api_test:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
