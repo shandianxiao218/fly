@@ -30,7 +30,7 @@ MODULE_SRC = $(SATELLITE_SRC) $(AIRCRAFT_SRC) $(OBSTRUCTION_SRC) $(WEB_SRC) $(UT
 ALL_SRC = $(MAIN_SRC) $(MODULE_SRC)
 
 # 测试文件
-TEST_FILES = $(TEST_DIR)/unit/test_all_simple.c
+TEST_FILES = $(TEST_DIR)/unit/test_all.c
 
 # 目标文件
 TARGET = $(BUILD_DIR)/beidou-server

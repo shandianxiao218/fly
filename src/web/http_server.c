@@ -174,7 +174,33 @@ void http_response_destroy(HttpResponse* response) {
 int http_request_parse(const char* raw_request, HttpRequest* request) {
     if (raw_request == NULL || request == NULL) return 0;
     
-    /* TODO: 实现HTTP请求解析逻辑 */
+    /* 简单的HTTP请求解析实现 */
+    char method[16] = {0};
+    char path[256] = {0};
+    char version[16] = {0};
+    
+    /* 解析请求行 */
+    if (sscanf(raw_request, "%15s %255s %15s", method, path, version) != 3) {
+        return 0;
+    }
+    
+    /* 设置请求方法 */
+    if (strcmp(method, "GET") == 0) {
+        request->method = HTTP_GET;
+    } else if (strcmp(method, "POST") == 0) {
+        request->method = HTTP_POST;
+    } else if (strcmp(method, "PUT") == 0) {
+        request->method = HTTP_PUT;
+    } else if (strcmp(method, "DELETE") == 0) {
+        request->method = HTTP_DELETE;
+    } else if (strcmp(method, "HEAD") == 0) {
+        request->method = HTTP_HEAD;
+    } else {
+        request->method = HTTP_GET; /* 默认为GET */
+    }
+    
+    /* 设置请求路径 */
+    request->path = safe_strdup(path);
     
     return 1;
 }
@@ -182,9 +208,18 @@ int http_request_parse(const char* raw_request, HttpRequest* request) {
 int http_response_serialize(const HttpResponse* response, char* buffer, int buffer_size) {
     if (response == NULL || buffer == NULL || buffer_size <= 0) return 0;
     
-    /* TODO: 实现HTTP响应序列化逻辑 */
+    /* 获取状态消息 */
+    const char* status_message = response->status_message ? response->status_message : "OK";
     
-    return 1;
+    /* 简单的HTTP响应序列化实现 */
+    int written = snprintf(buffer, buffer_size, "HTTP/1.1 %d %s\r\n\r\n", 
+                         response->status_code, status_message);
+    
+    if (written >= buffer_size) {
+        return 0; /* 缓冲区不足 */
+    }
+    
+    return written;
 }
 
 int http_response_set_json(HttpResponse* response, const char* json_data) {
@@ -267,9 +302,17 @@ int api_handle_analysis(const ApiRequestParams* params, ApiResponseData* respons
 int json_serialize_satellite(const Satellite* satellite, char* buffer, int buffer_size) {
     if (satellite == NULL || buffer == NULL || buffer_size <= 0) return 0;
     
-    /* TODO: 实现卫星数据JSON序列化 */
+    /* 简单的卫星数据JSON序列化实现 */
+    int written = snprintf(buffer, buffer_size, 
+                         "{\"prn\":%d,\"system\":%d,\"is_valid\":%d,\"pos\":{\"x\":%.2f,\"y\":%.2f,\"z\":%.2f}}",
+                         satellite->prn, satellite->system, satellite->is_valid,
+                         satellite->pos.x, satellite->pos.y, satellite->pos.z);
     
-    return 1;
+    if (written >= buffer_size) {
+        return 0; /* 缓冲区不足 */
+    }
+    
+    return written;
 }
 
 int json_serialize_trajectory(const FlightTrajectory* trajectory, char* buffer, int buffer_size) {
