@@ -91,7 +91,7 @@ typedef enum {
     ERROR_NETWORK = 4,
     ERROR_CALCULATION = 5,
     ERROR_PARAMETER = 6,
-    ERROR_TIMEOUT = 7,
+    ERROR_TIMEOUT_VALUE = 7,
     ERROR_SYSTEM = 8
 } ErrorCode;
 

@@ -5,7 +5,7 @@
 CC = gcc
 CFLAGS = -std=c11 -Wall -Wextra -O2 -g
 INCLUDES = -I./lib -I./src
-LIBS = -lm
+LIBS = -lm -lpthread
 
 # 源文件目录
 SRC_DIR = src
@@ -17,7 +17,7 @@ BUILD_DIR = build
 SATELLITE_SRC = $(SRC_DIR)/satellite/satellite.c
 AIRCRAFT_SRC = $(SRC_DIR)/aircraft/trajectory.c $(SRC_DIR)/aircraft/attitude.c $(SRC_DIR)/aircraft/csv_parser.c
 OBSTRUCTION_SRC = $(SRC_DIR)/obstruction/geometry.c $(SRC_DIR)/obstruction/obstruction.c $(SRC_DIR)/obstruction/aircraft_model.c
-WEB_SRC = $(SRC_DIR)/web/http_server.c $(SRC_DIR)/web/api.c $(SRC_DIR)/web/json_utils.c
+WEB_SRC = $(SRC_DIR)/web/http_server.c $(SRC_DIR)/web/api.c $(SRC_DIR)/web/json_utils.c $(SRC_DIR)/web/websocket.c
 UTILS_SRC = $(SRC_DIR)/utils/utils.c $(SRC_DIR)/utils/logger.c
 
 # 主程序文件

@@ -4,6 +4,7 @@
 #include "../satellite/satellite.h"
 #include "../aircraft/aircraft.h"
 #include "../obstruction/obstruction.h"
+#include "websocket.h"
 
 /* HTTP服务器配置 */
 typedef struct {
@@ -156,6 +157,10 @@ typedef struct {
     FlightTrajectory* trajectory;  /* 飞行轨迹 */
     AircraftGeometry* geometry;    /* 飞机几何模型 */
     
+    /* WebSocket支持 */
+    WebSocketServer* websocket_server; /* WebSocket服务器 */
+    int enable_websocket;         /* 是否启用WebSocket */
+    
     /* 回调函数 */
     HttpRequestHandler request_handler;
     WebSocketHandler websocket_handler;
@@ -169,6 +174,11 @@ void http_server_destroy(HttpServer* server);
 int http_server_start(HttpServer* server);
 int http_server_stop(HttpServer* server);
 int http_server_restart(HttpServer* server);
+
+/* WebSocket管理 */
+int http_server_enable_websocket(HttpServer* server, int enable);
+int http_server_websocket_broadcast(HttpServer* server, const char* message);
+int http_server_websocket_send_status(HttpServer* server);
 
 int http_server_set_data(HttpServer* server, 
                         SatelliteData* satellite_data,

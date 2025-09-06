@@ -1,4 +1,5 @@
 #include "http_server.h"
+#include "websocket.h"
 #include "../utils/utils.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,6 +46,10 @@ HttpServer* http_server_create(const HttpServerConfig* config) {
     server->server_socket = -1;
     server->is_running = 0;
     
+    /* 初始化WebSocket支持 */
+    server->websocket_server = NULL;
+    server->enable_websocket = 0;
+    
     return server;
 }
 
@@ -54,6 +59,12 @@ void http_server_destroy(HttpServer* server) {
     /* 停止服务器 */
     if (server->is_running) {
         http_server_stop(server);
+    }
+    
+    /* 销毁WebSocket服务器 */
+    if (server->websocket_server) {
+        websocket_server_destroy(server->websocket_server);
+        server->websocket_server = NULL;
     }
     
     /* 释放配置字符串 */
@@ -74,7 +85,9 @@ static HttpServer* g_server = NULL;
 /* 信号处理函数 */
 static void signal_handler(int signum) {
     if (g_server != NULL) {
-        logger_info(__func__, __FILE__, __LINE__, "接收到信号 %d，正在关闭服务器...", signum);
+        char signal_msg[100];
+    snprintf(signal_msg, sizeof(signal_msg), "接收到信号 %d，正在关闭服务器...", signum);
+    logger_info(__func__, __FILE__, __LINE__, signal_msg);
         http_server_stop(g_server);
     }
     exit(0);
@@ -96,22 +109,28 @@ static void* server_thread_function(void* arg) {
             if (errno == EINTR) {
                 continue; /* 被信号中断，继续循环 */
             }
-            logger_error(__func__, __FILE__, __LINE__, "接受客户端连接失败: %s", strerror(errno));
+            char error_msg[200];
+                snprintf(error_msg, sizeof(error_msg), "接受客户端连接失败: %s", strerror(errno));
+                logger_error(__func__, __FILE__, __LINE__, error_msg);
             continue;
         }
         
         /* 处理客户端请求 */
         char client_ip[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, sizeof(client_ip));
-        logger_info(__func__, __FILE__, __LINE__, "接受来自 %s:%d 的连接", 
-                   client_ip, ntohs(client_addr.sin_port));
+        char log_msg[200];
+        snprintf(log_msg, sizeof(log_msg), "接受来自 %s:%d 的连接", 
+                 client_ip, ntohs(client_addr.sin_port));
+        logger_info(__func__, __FILE__, __LINE__, log_msg);
         
         /* 读取请求 */
         char buffer[8192];
         ssize_t bytes_read = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
         if (bytes_read > 0) {
             buffer[bytes_read] = '\0';
-            logger_debug(__func__, __FILE__, __LINE__, "收到请求:\n%s", buffer);
+            char debug_msg[8300];
+                snprintf(debug_msg, sizeof(debug_msg), "收到请求:\n%s", buffer);
+                logger_debug(__func__, __FILE__, __LINE__, debug_msg);
             
             /* 解析HTTP请求 */
             HttpRequest* request = http_request_create();
@@ -137,6 +156,54 @@ static void* server_thread_function(void* arg) {
                                             "</ul></body></html>";
                         
                         send(client_socket, welcome, strlen(welcome), 0);
+                    } else if (server->enable_websocket && websocket_validate_handshake(buffer)) {
+                        /* WebSocket握手处理 */
+                        if (websocket_handshake(request, response)) {
+                            /* 握手成功，创建WebSocket连接 */
+                            char client_ip[INET_ADDRSTRLEN];
+                            inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, sizeof(client_ip));
+                            
+                            WebSocketConnection* ws_conn = websocket_connection_create(client_socket, client_ip, ntohs(client_addr.sin_port));
+                            if (ws_conn) {
+                                ws_conn->state = WS_STATE_OPEN;
+                                ws_conn->server = server->websocket_server;
+                                
+                                /* 添加连接到WebSocket服务器 */
+                                if (websocket_add_connection(server->websocket_server, ws_conn)) {
+                                    /* 发送握手响应 */
+                                    send(client_socket, response->body, response->content_length, 0);
+                                    
+                                    /* 创建连接处理线程 */
+                                    pthread_t ws_thread;
+                                    if (pthread_create(&ws_thread, NULL, websocket_connection_thread, ws_conn) == 0) {
+                                        pthread_detach(ws_thread);
+                                        char ws_log_msg[200];
+            snprintf(ws_log_msg, sizeof(ws_log_msg), "WebSocket连接建立成功: %s:%d", client_ip, ntohs(client_addr.sin_port));
+            logger_info(__func__, __FILE__, __LINE__, ws_log_msg);
+                                        
+                                        /* 不要关闭客户端套接字，WebSocket线程会处理 */
+                                        client_socket = -1;
+                                    } else {
+                                        logger_error(__func__, __FILE__, __LINE__, "创建WebSocket线程失败");
+                                        websocket_connection_destroy(ws_conn);
+                                    }
+                                } else {
+                                    logger_error(__func__, __FILE__, __LINE__, "添加WebSocket连接失败");
+                                    websocket_connection_destroy(ws_conn);
+                                }
+                            } else {
+                                logger_error(__func__, __FILE__, __LINE__, "创建WebSocket连接失败");
+                            }
+                        } else {
+                            logger_error(__func__, __FILE__, __LINE__, "WebSocket握手失败");
+                            const char* error_response = "HTTP/1.1 400 Bad Request\r\n"
+                                                        "Content-Type: text/plain\r\n"
+                                                        "Connection: close\r\n"
+                                                        "\r\n"
+                                                        "WebSocket Handshake Failed";
+                            send(client_socket, error_response, strlen(error_response), 0);
+                            server->status.error_count++;
+                        }
                     } else if (strncmp(request->path, "/api/", 5) == 0) {
                         /* API请求处理 */
                         if (api_handle_request(request, response, server)) {
@@ -192,7 +259,9 @@ static void* server_thread_function(void* arg) {
         } else if (bytes_read == 0) {
             logger_info(__func__, __FILE__, __LINE__, "客户端关闭连接");
         } else {
-            logger_error(__func__, __FILE__, __LINE__, "读取请求失败: %s", strerror(errno));
+            char read_error_msg[200];
+            snprintf(read_error_msg, sizeof(read_error_msg), "读取请求失败: %s", strerror(errno));
+            logger_error(__func__, __FILE__, __LINE__, read_error_msg);
             server->status.error_count++;
         }
         
@@ -209,14 +278,14 @@ int http_server_start(HttpServer* server) {
     /* 创建服务器套接字 */
     server->server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (server->server_socket < 0) {
-        logger_error(__func__, __FILE__, __LINE__, "创建套接字失败: %s", strerror(errno));
+  // logger_error(__func__, __FILE__, __LINE__, "创建套接字失败: %s", strerror(errno));
         return 0;
     }
     
     /* 设置套接字选项 */
     int opt = 1;
     if (setsockopt(server->server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
-        logger_error(__func__, __FILE__, __LINE__, "设置套接字选项失败: %s", strerror(errno));
+        // logger_error(__func__, __FILE__, __LINE__, "设置套接字选项失败: %s", strerror(errno));
         close(server->server_socket);
         return 0;
     }
@@ -229,14 +298,14 @@ int http_server_start(HttpServer* server) {
     server_addr.sin_port = htons(server->config.port);
     
     if (bind(server->server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-        logger_error(__func__, __FILE__, __LINE__, "绑定地址失败: %s", strerror(errno));
+        // logger_error(__func__, __FILE__, __LINE__, "绑定地址失败: %s", strerror(errno));
         close(server->server_socket);
         return 0;
     }
     
     /* 开始监听 */
     if (listen(server->server_socket, server->config.max_connections) < 0) {
-        logger_error(__func__, __FILE__, __LINE__, "监听失败: %s", strerror(errno));
+        // logger_error(__func__, __FILE__, __LINE__, "监听失败: %s", strerror(errno));
         close(server->server_socket);
         return 0;
     }
@@ -257,6 +326,15 @@ int http_server_start(HttpServer* server) {
     server->status.is_running = 1;
     server->status.start_time = time(NULL);
     
+    /* 启动WebSocket服务器 */
+    if (server->enable_websocket && server->websocket_server) {
+        if (!websocket_server_start(server->websocket_server)) {
+            logger_error(__func__, __FILE__, __LINE__, "WebSocket服务器启动失败");
+        } else {
+            logger_info(__func__, __FILE__, __LINE__, "WebSocket服务器启动成功");
+        }
+    }
+    
     logger_info(__func__, __FILE__, __LINE__, "HTTP服务器启动成功，监听 %s:%d", 
                server->config.host, server->config.port);
     
@@ -272,6 +350,11 @@ int http_server_stop(HttpServer* server) {
     }
     
     logger_info(__func__, __FILE__, __LINE__, "正在停止HTTP服务器...");
+    
+    /* 停止WebSocket服务器 */
+    if (server->enable_websocket && server->websocket_server) {
+        websocket_server_stop(server->websocket_server);
+    }
     
     /* 设置停止标志 */
     server->is_running = 0;
@@ -542,7 +625,7 @@ int http_response_serialize(const HttpResponse* response, char* buffer, int buff
         }
     }
     
-    logger_info(__func__, __FILE__, __LINE__, "HTTP响应序列化完成，长度: %d", written);
+    logger_info(__func__, __FILE__, __LINE__, "HTTP响应序列化完成");
     
     return written;
 }
@@ -570,12 +653,14 @@ int http_response_set_error(HttpResponse* response, int status_code, const char*
 int http_response_set_file(HttpResponse* response, const char* filename) {
     if (response == NULL || filename == NULL) return 0;
     
-    logger_info(__func__, __FILE__, __LINE__, "设置文件响应: %s", filename);
+    logger_info(__func__, __FILE__, __LINE__, "设置文件响应");
     
     /* 打开文件 */
     FILE* file = fopen(filename, "rb");
     if (file == NULL) {
-        logger_error(__func__, __FILE__, __LINE__, "无法打开文件: %s", filename);
+        char file_error_msg[300];
+            snprintf(file_error_msg, sizeof(file_error_msg), "无法打开文件: %s", filename);
+            logger_error(__func__, __FILE__, __LINE__, file_error_msg);
         return 0;
     }
     
@@ -585,7 +670,9 @@ int http_response_set_file(HttpResponse* response, const char* filename) {
     fseek(file, 0, SEEK_SET);
     
     if (file_size <= 0) {
-        logger_error(__func__, __FILE__, __LINE__, "文件为空或读取失败: %s", filename);
+        char file_read_msg[300];
+            snprintf(file_read_msg, sizeof(file_read_msg), "文件为空或读取失败: %s", filename);
+            logger_error(__func__, __FILE__, __LINE__, file_read_msg);
         fclose(file);
         return 0;
     }
@@ -672,7 +759,9 @@ int api_handle_request(const HttpRequest* request, HttpResponse* response,
     } else if (strncmp(request->path, "/api/analysis", 13) == 0) {
         endpoint = API_ANALYSIS;
     } else {
-        logger_warning(__func__, __FILE__, __LINE__, "未知的API端点: %s", request->path);
+        char api_unknown_msg[300];
+            snprintf(api_unknown_msg, sizeof(api_unknown_msg), "未知的API端点: %s", request->path);
+            logger_warning(__func__, __FILE__, __LINE__, api_unknown_msg);
         http_response_set_error(response, 404, "未找到API端点");
         return 0;
     }
@@ -723,13 +812,17 @@ int api_handle_request(const HttpRequest* request, HttpResponse* response,
             result = api_handle_analysis(&params, &api_response, server);
             break;
         default:
-            logger_error(__func__, __FILE__, __LINE__, "未实现的API端点: %d", endpoint);
+            char api_unimpl_msg[200];
+            snprintf(api_unimpl_msg, sizeof(api_unimpl_msg), "未实现的API端点: %d", endpoint);
+            logger_error(__func__, __FILE__, __LINE__, api_unimpl_msg);
             http_response_set_error(response, 501, "未实现的API端点");
             return 0;
     }
     
     if (!result) {
-        logger_error(__func__, __FILE__, __LINE__, "API处理失败: %s", api_response.error);
+        char api_error_msg[300];
+            snprintf(api_error_msg, sizeof(api_error_msg), "API处理失败: %s", api_response.error);
+            logger_error(__func__, __FILE__, __LINE__, api_error_msg);
         http_response_set_error(response, api_response.status_code, api_response.error);
         return 0;
     }
@@ -769,7 +862,7 @@ int api_handle_request(const HttpRequest* request, HttpResponse* response,
         safe_free((void**)&api_response.data);
     }
     
-    logger_info(__func__, __FILE__, __LINE__, "API请求处理完成，状态码: %d", response->status_code);
+    logger_info(__func__, __FILE__, __LINE__, "API请求处理完成");
     
     return 1;
 }
@@ -1170,7 +1263,7 @@ int api_handle_analysis(const ApiRequestParams* params, ApiResponseData* respons
     response->status_code = 200;
     snprintf(response->message, sizeof(response->message), "可见性分析完成");
     
-    logger_info(__func__, __FILE__, __LINE__, "分析API处理完成，返回%d个分析结果", result_count);
+    logger_info(__func__, __FILE__, __LINE__, "分析API处理完成");
     
     return 1;
 }
@@ -1473,4 +1566,91 @@ const char* api_endpoint_to_string(ApiEndpointType endpoint) {
         case API_ANALYSIS: return "analysis";
         default: return "unknown";
     }
+}
+
+/* =================== WebSocket管理函数 =================== */
+
+int http_server_enable_websocket(HttpServer* server, int enable) {
+    if (server == NULL) return 0;
+    
+    if (enable && !server->websocket_server) {
+        /* 创建WebSocket服务器 */
+        server->websocket_server = websocket_server_create(server);
+        if (!server->websocket_server) {
+            logger_error(__func__, __FILE__, __LINE__, "创建WebSocket服务器失败");
+            return 0;
+        }
+        
+        /* 设置WebSocket回调函数 */
+        websocket_set_handlers(server->websocket_server,
+                             server->websocket_handler,
+                             NULL, /* 连接回调 */
+                             NULL  /* 断开连接回调 */
+                             );
+        
+        logger_info(__func__, __FILE__, __LINE__, "WebSocket服务器已启用");
+    } else if (!enable && server->websocket_server) {
+        /* 销毁WebSocket服务器 */
+        websocket_server_destroy(server->websocket_server);
+        server->websocket_server = NULL;
+        
+        logger_info(__func__, __FILE__, __LINE__, "WebSocket服务器已禁用");
+    }
+    
+    server->enable_websocket = enable;
+    
+    return 1;
+}
+
+int http_server_websocket_broadcast(HttpServer* server, const char* message) {
+    if (server == NULL || message == NULL) return 0;
+    
+    if (!server->enable_websocket || !server->websocket_server) {
+        logger_warning(__func__, __FILE__, __LINE__, "WebSocket未启用");
+        return 0;
+    }
+    
+    return websocket_broadcast_text(server->websocket_server, message);
+}
+
+int http_server_websocket_send_status(HttpServer* server) {
+    if (server == NULL) return 0;
+    
+    if (!server->enable_websocket || !server->websocket_server) {
+        logger_warning(__func__, __FILE__, __LINE__, "WebSocket未启用");
+        return 0;
+    }
+    
+    /* 创建状态消息 */
+    char status_json[2048];
+    time_t current_time = time(NULL);
+    time_t uptime = current_time - server->status.start_time;
+    
+    int written = snprintf(status_json, sizeof(status_json),
+                         "{\"type\":\"status\","
+                         "\"timestamp\":%ld,"
+                         "\"uptime\":%ld,"
+                         "\"system_status\":\"%s\","
+                         "\"connection_count\":%d,"
+                         "\"request_count\":%d,"
+                         "\"error_count\":%d,"
+                         "\"memory_usage\":%d,"
+                         "\"cpu_usage\":%.2f,"
+                         "\"websocket_connections\":%d}",
+                         current_time,
+                         uptime,
+                         server->status.is_running ? "running" : "stopped",
+                         server->status.active_connections,
+                         server->status.request_count,
+                         server->status.error_count,
+                         server->status.memory_usage,
+                         server->status.cpu_usage,
+                         websocket_get_connection_count(server->websocket_server));
+    
+    if (written >= sizeof(status_json)) {
+        logger_error(__func__, __FILE__, __LINE__, "状态JSON缓冲区不足");
+        return 0;
+    }
+    
+    return websocket_broadcast_text(server->websocket_server, status_json);
 }
