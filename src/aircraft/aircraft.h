@@ -119,4 +119,16 @@ double aircraft_state_bearing(const AircraftState* state1, const AircraftState* 
 const char* trajectory_type_to_string(TrajectoryType type);
 int trajectory_params_validate(const TrajectoryParams* params);
 
+/* 姿态计算相关函数 */
+int aircraft_attitude_calculate(const AircraftVelocity* velocity, 
+                              const double acceleration[3],
+                              AircraftAttitude* attitude);
+int aircraft_attitude_extreme(const AircraftAttitude* base_attitude,
+                             int maneuver_type, double intensity,
+                             AircraftAttitude* result);
+int aircraft_attitude_interpolate(const AircraftAttitude* attitude1,
+                                 const AircraftAttitude* attitude2,
+                                 double t, AircraftAttitude* result);
+int aircraft_attitude_validate(const AircraftAttitude* attitude);
+
 #endif /* AIRCRAFT_H */
