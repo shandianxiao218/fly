@@ -105,6 +105,7 @@
 - `CLAUDE.md`: 项目指导文件
 - `工程状态.md`: 详细工程状态分析
 - `.claude/settings.local.json`: Claude Code配置
+- `archive/`: 历史文档归档（开发计划、需求文档等）
 
 ### 工具和环境
 - **构建工具**: make, gcc

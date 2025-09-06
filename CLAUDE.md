@@ -21,7 +21,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 * 用code-reviewer对代码进行检查；
 * 写代码用相应语言专用的subagent进行编写；
 * 调试代码用debugger代理；
-
+* 软件测试的过程用debug_log.md进行记录
+* 需求追踪状态必须实时更新到specs/REQUIREMENTS-TRACKING.md，更新时机包括：
+  - 完成功能实现时
+  - 通过测试验证时  
+  - 遇到问题或阻塞时
+  - 每周项目状态更新时
+  - 模块间依赖关系发生变化时
+* 
 ## Memory Bank System
 
 This project uses a structured memory bank system with specialized context files. Always check these files for relevant information before starting work:
@@ -33,9 +40,15 @@ This project uses a structured memory bank system with specialized context files
 * **CLAUDE-decisions.md** - Architecture decisions and rationale (if exists)
 * **CLAUDE-troubleshooting.md** - Common issues and proven solutions (if exists)
 * **CLAUDE-config-variables.md** - Configuration variables reference (if exists)
-* **CLAUDE-temp.md** - Temporary scratch pad (only read when referenced)
+* **CLAUDE-temp.md** - Temporary scratch pad (created when needed)
 
 **Important:** Always reference the active context file first to understand what's currently being worked on and maintain session continuity.
+
+### Requirements Tracking
+
+* **specs/REQUIREMENTS.md** - Complete requirements specification
+* **specs/REQUIREMENTS-TRACKING.md** - Requirements implementation status and progress tracking
+* **specs/REQUIREMENTS-UPDATE-TEMPLATE.md** - Quick update template and checklist
 
 ### Memory Bank System Backups
 

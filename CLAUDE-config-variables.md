@@ -6,45 +6,25 @@
 
 #### Makefile 配置
 ```makefile
-# 编译器配置
+# 编译器和构建配置
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c11 -O2
-CFLAGS_DEBUG = -Wall -Wextra -std=c11 -g -O0 -DDEBUG
-CFLAGS_PROFILE = -Wall -Wextra -std=c11 -g -pg -O2
-
-# 包含路径
+CFLAGS_DEBUG = -g -O0 -DDEBUG
 INCLUDES = -I./src -I./include -I./lib
-
-# 库路径
 LIBDIRS = -L./lib -L./build
-
-# 链接库
 LIBS = -lm -lpthread -lculib
-
-# 构建目录
 BUILD_DIR = ./build
-SRC_DIR = ./src
-LIB_DIR = ./lib
-TEST_DIR = ./tests
 ```
 
 #### 条件编译宏
 ```c
-/* 调试模式 */
-#define DEBUG              1       /* 启用调试输出 */
-#define DEBUG_MEMORY       0       /* 启用内存调试 */
-#define DEBUG_PERFORMANCE  0       /* 启用性能调试 */
-
-/* 功能开关 */
-#define ENABLE_LOGGING     1       /* 启用日志系统 */
-#define ENABLE_PROFILING   0       /* 启用性能分析 */
-#define ENABLE_WEBSOCKET   0       /* 启用WebSocket支持 */
-#define ENABLE_MULTITHREAD 0       /* 启用多线程支持 */
-
-/* 平台检测 */
+/* 调试和功能开关 */
+#define DEBUG              1       /* 调试输出 */
+#define DEBUG_MEMORY       0       /* 内存调试 */
+#define ENABLE_LOGGING     1       /* 日志系统 */
+#define ENABLE_PROFILING   0       /* 性能分析 */
+#define ENABLE_WEBSOCKET   0       /* WebSocket支持 */
 #define PLATFORM_WINDOWS   1       /* Windows平台 */
-#define PLATFORM_LINUX     0       /* Linux平台 */
-#define PLATFORM_MACOS     0       /* macOS平台 */
 ```
 
 ### 2. 运行时配置
@@ -224,54 +204,32 @@ typedef struct {
 
 #### 遮挡计算配置
 ```c
-/**
- * @brief 遮挡计算配置
- */
 typedef struct {
-    /* 几何计算参数 */
     double angular_resolution;    /**< 角度分辨率 (度) */
     double distance_threshold;    /**< 距离阈值 (米) */
     double intersection_tolerance; /**< 相交容差 */
-    
-    /* 模型参数 */
     int model_detail_level;        /**< 模型细节等级 (1-5) */
     int mesh_density;             /**< 网格密度 */
     double smoothing_factor;      /**< 平滑因子 */
-    
-    /* 材质参数 */
     double material_density;       /**< 材质密度 */
     double material_thickness;    /**< 材料厚度 */
     double attenuation_factor;    /**< 衰减因子 */
-    
-    /* 计算参数 */
     int ray_count;               /**< 射线数量 */
     int max_reflections;         /**< 最大反射次数 */
     double min_obstruction_angle; /**< 最小遮挡角度 */
-    
-    /* 优化参数 */
     int use_spatial_index;       /**< 使用空间索引 */
     int use_occlusion_culling;   /**< 使用遮挡剔除 */
     int use_level_of_detail;     /**< 使用LOD */
 } ObstructionConfig;
-```
 
-#### 默认遮挡配置
-```c
 #define DEFAULT_OBSTRUCTION_CONFIG {\
-    .angular_resolution = 1.0,\
-    .distance_threshold = 0.1,\
-    .intersection_tolerance = 1e-6,\
-    .model_detail_level = 3,\
-    .mesh_density = 100,\
-    .smoothing_factor = 0.1,\
-    .material_density = 2700.0,\
-    .material_thickness = 0.01,\
-    .attenuation_factor = 0.8,\
-    .ray_count = 360,\
-    .max_reflections = 3,\
-    .min_obstruction_angle = 1.0,\
-    .use_spatial_index = 1,\
-    .use_occlusion_culling = 1,\
+    .angular_resolution = 1.0, .distance_threshold = 0.1,\
+    .intersection_tolerance = 1e-6, .model_detail_level = 3,\
+    .mesh_density = 100, .smoothing_factor = 0.1,\
+    .material_density = 2700.0, .material_thickness = 0.01,\
+    .attenuation_factor = 0.8, .ray_count = 360,\
+    .max_reflections = 3, .min_obstruction_angle = 1.0,\
+    .use_spatial_index = 1, .use_occlusion_culling = 1,\
     .use_level_of_detail = 1\
 }
 ```
@@ -517,8 +475,8 @@ typedef struct {
 #### 环境变量列表
 ```bash
 # 基础配置
-export BEIDOU_DEBUG=1                    # 启用调试模式
-export BEIDOU_LOG_LEVEL=DEBUG             # 设置日志级别
+export BEIDOU_DEBUG=1                    # 调试模式
+export BEIDOU_LOG_LEVEL=DEBUG             # 日志级别
 export BEIDOU_CONFIG_FILE=/path/to/config # 配置文件路径
 export BEIDOU_DATA_DIR=/path/to/data      # 数据目录路径
 
