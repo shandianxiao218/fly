@@ -206,7 +206,7 @@ static void* server_thread_function(void* arg) {
                         }
                     } else if (strncmp(request->path, "/api/", 5) == 0) {
                         /* API请求处理 */
-                        if (api_handle_request(request, response, server)) {
+                        if (api_handle_request(request, response, (const struct HttpServer*)server)) {
                             /* 序列化响应 */
                             char response_buffer[16384];
                             int response_length = http_response_serialize(response, response_buffer, sizeof(response_buffer));
@@ -283,7 +283,7 @@ int http_server_start(HttpServer* server) {
     }
     
     /* 设置套接字选项 */
-    int opt = 1;
+    const char opt = 1;
     if (setsockopt(server->server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
         // logger_error(__func__, __FILE__, __LINE__, "设置套接字选项失败: %s", strerror(errno));
         close(server->server_socket);
@@ -335,8 +335,10 @@ int http_server_start(HttpServer* server) {
         }
     }
     
-    logger_info(__func__, __FILE__, __LINE__, "HTTP服务器启动成功，监听 %s:%d", 
-               server->config.host, server->config.port);
+    char start_msg[200];
+    snprintf(start_msg, sizeof(start_msg), "HTTP服务器启动成功，监听 %s:%d", 
+             server->config.host, server->config.port);
+    logger_info(__func__, __FILE__, __LINE__, start_msg);
     
     return 1;
 }
@@ -444,6 +446,13 @@ void http_request_destroy(HttpRequest* request) {
         safe_free((void**)&request->query_string);
     }
     if (request->headers) {
+        /* 释放每个请求头字符串 */
+        for (int i = 0; i < request->header_count; i++) {
+            if (request->headers[i]) {
+                safe_free((void**)&request->headers[i]);
+            }
+        }
+        /* 释放请求头数组 */
         safe_free((void**)&request->headers);
     }
     if (request->body) {
@@ -522,7 +531,11 @@ int http_request_parse(const char* raw_request, HttpRequest* request) {
     /* 设置请求路径 */
     request->path = safe_strdup(path);
     
-    /* 解析请求头 (简化处理) */
+    /* 初始化请求头数组 */
+    request->headers = NULL;
+    request->header_count = 0;
+    
+    /* 解析请求头 */
     const char* headers_start = strstr(raw_request, "\r\n");
     if (headers_start) {
         headers_start += 2; /* 跳过\r\n */
@@ -540,22 +553,39 @@ int http_request_parse(const char* raw_request, HttpRequest* request) {
             }
         }
         
-        /* 简单的请求头处理 */
+        /* 解析请求头 */
         char* headers_copy = safe_strdup(headers_start);
         if (headers_copy) {
             char* line = strtok(headers_copy, "\r\n");
-            while (line) {
+            int header_capacity = 16;
+            request->headers = (char**)safe_malloc(header_capacity * sizeof(char*));
+            
+            while (line && strlen(line) > 0) {
+                /* 扩展数组容量 */
+                if (request->header_count >= header_capacity) {
+                    header_capacity *= 2;
+                    request->headers = (char**)safe_realloc(request->headers, header_capacity * sizeof(char*));
+                }
+                
+                /* 复制请求头 */
+                request->headers[request->header_count] = safe_strdup(line);
+                
+                /* 解析Content-Length */
                 if (strstr(line, "Content-Length:")) {
                     request->content_length = atoi(line + 15);
                 }
+                
+                request->header_count++;
                 line = strtok(NULL, "\r\n");
             }
             safe_free((void**)&headers_copy);
         }
     }
     
-    logger_info(__func__, __FILE__, __LINE__, "HTTP请求解析完成: %s %s", 
-               http_method_to_string(request->method), request->path);
+    char parse_msg[200];
+    snprintf(parse_msg, sizeof(parse_msg), "HTTP请求解析完成: %s %s", 
+             http_method_to_string(request->method), request->path);
+    logger_info(__func__, __FILE__, __LINE__, parse_msg);
     
     return 1;
 }
@@ -732,8 +762,10 @@ int http_response_set_file(HttpResponse* response, const char* filename) {
     
     response->headers = safe_strdup(headers);
     
-    logger_info(__func__, __FILE__, __LINE__, "文件响应设置完成: %s (%ld bytes)", 
-               filename, file_size);
+    char file_msg[300];
+    snprintf(file_msg, sizeof(file_msg), "文件响应设置完成: %s (%ld bytes)", 
+             filename, file_size);
+    logger_info(__func__, __FILE__, __LINE__, file_msg);
     
     return 1;
 }
@@ -744,8 +776,10 @@ int api_handle_request(const HttpRequest* request, HttpResponse* response,
                       const struct HttpServer* server) {
     if (request == NULL || response == NULL || server == NULL) return 0;
     
-    logger_info(__func__, __FILE__, __LINE__, "处理API请求: %s %s", 
-               http_method_to_string(request->method), request->path);
+    char api_msg[200];
+    snprintf(api_msg, sizeof(api_msg), "处理API请求: %s %s", 
+             http_method_to_string(request->method), request->path);
+    logger_info(__func__, __FILE__, __LINE__, api_msg);
     
     /* 解析API端点 */
     ApiEndpointType endpoint = API_STATUS; /* 默认端点 */

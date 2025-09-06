@@ -927,9 +927,9 @@ int websocket_get_total_messages(WebSocketServer* server, int* sent, int* receiv
 /* =================== WebSocket回调设置 =================== */
 
 int websocket_set_handlers(WebSocketServer* server,
-                         WebSocketHandler message_handler,
-                         WebSocketHandler connect_handler,
-                         WebSocketHandler disconnect_handler) {
+                         WebSocketMessageHandler message_handler,
+                         WebSocketMessageHandler connect_handler,
+                         WebSocketMessageHandler disconnect_handler) {
     if (server == NULL) return 0;
     
     server->message_handler = message_handler;
@@ -1065,7 +1065,7 @@ void* websocket_connection_thread(void* arg) {
                             if (websocket_message_create(&message, header.opcode, payload, header.payload_len)) {
                                 /* 调用消息处理回调 */
                                 if (connection->server && connection->server->message_handler) {
-                                    connection->server->message_handler(&message);
+                                    connection->server->message_handler((const struct WebSocketMessage*)&message);
                                 }
                                 websocket_message_destroy(&message);
                             }
@@ -1092,7 +1092,7 @@ void* websocket_connection_thread(void* arg) {
                                     if (websocket_message_create(&message, connection->fragment_opcode, connection->fragment_buffer, connection->fragment_buffer_len)) {
                                         /* 调用消息处理回调 */
                                         if (connection->server && connection->server->message_handler) {
-                                            connection->server->message_handler(&message);
+                                            connection->server->message_handler((const struct WebSocketMessage*)&message);
                                         }
                                         websocket_message_destroy(&message);
                                     }
@@ -1165,7 +1165,7 @@ void* websocket_connection_thread(void* arg) {
             memset(&message, 0, sizeof(message));
             message.msg_type = WS_MESSAGE_ERROR;
             message.connection = connection;
-            connection->server->disconnect_handler(&message);
+            connection->server->disconnect_handler((const struct WebSocketMessage*)&message);
         }
     }
     

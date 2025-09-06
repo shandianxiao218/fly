@@ -32,13 +32,22 @@ ALL_SRC = $(MAIN_SRC) $(MODULE_SRC)
 # 测试文件
 TEST_FILES = $(TEST_DIR)/unit/test_all.c
 
+# WebSocket测试文件
+WEBSOCKET_TEST_FILES = test_websocket_simple.c test_websocket_network.c test_websocket_concurrent.c test_websocket_performance.c
+
 # 目标文件
 TARGET = $(BUILD_DIR)/beidou-server
 TEST_TARGET = $(BUILD_DIR)/test_runner
 WEB_TEST_TARGET = $(BUILD_DIR)/web_server_test
 
+# WebSocket测试目标
+WEBSOCKET_SIMPLE_TEST = $(BUILD_DIR)/test_websocket_simple
+WEBSOCKET_NETWORK_TEST = $(BUILD_DIR)/test_websocket_network
+WEBSOCKET_CONCURRENT_TEST = $(BUILD_DIR)/test_websocket_concurrent
+WEBSOCKET_PERFORMANCE_TEST = $(BUILD_DIR)/test_websocket_performance
+
 # 默认目标
-all: setup build test
+all: setup build test websocket_tests
 
 # 构建utils模块
 utils: $(UTILS_SRC)
@@ -91,13 +100,21 @@ help:
 	@echo "北斗导航卫星可见性分析系统 - 开发帮助"
 	@echo ""
 	@echo "可用命令:"
-	@echo "  make setup    - 设置开发环境"
-	@echo "  make build    - 编译主程序"
-	@echo "  make test     - 编译并运行测试"
-	@echo "  make run      - 运行程序"
-	@echo "  make clean    - 清理构建文件"
-	@echo "  make install  - 安装依赖"
-	@echo "  make help     - 显示帮助信息"
+	@echo "  make setup                    - 设置开发环境"
+	@echo "  make build                    - 编译主程序"
+	@echo "  make test                     - 编译并运行测试"
+	@echo "  make run                      - 运行程序"
+	@echo "  make clean                    - 清理构建文件"
+	@echo "  make install                  - 安装依赖"
+	@echo "  make help                     - 显示帮助信息"
+	@echo ""
+	@echo "WebSocket测试:"
+	@echo "  make websocket_tests          - 编译所有WebSocket测试"
+	@echo "  make run_websocket_simple     - 运行WebSocket简单测试"
+	@echo "  make run_websocket_network    - 运行WebSocket网络测试"
+	@echo "  make run_websocket_concurrent - 运行WebSocket并发测试"
+	@echo "  make run_websocket_performance- 运行WebSocket性能测试"
+	@echo "  make run_websocket_tests      - 运行所有WebSocket测试"
 	@echo ""
 	@echo "TDD开发流程:"
 	@echo "  1. 编写失败的测试"
@@ -119,4 +136,50 @@ run_web_test: $(WEB_TEST_TARGET)
 	@echo "运行web服务器测试程序..."
 	./$(WEB_TEST_TARGET) 8080 localhost
 
-.PHONY: all setup build test clean run install help web_test run_web_test
+# WebSocket测试目标
+websocket_tests: $(WEBSOCKET_SIMPLE_TEST) $(WEBSOCKET_NETWORK_TEST) $(WEBSOCKET_CONCURRENT_TEST) $(WEBSOCKET_PERFORMANCE_TEST)
+
+# 编译WebSocket简单测试
+$(WEBSOCKET_SIMPLE_TEST): test_websocket_simple.c $(MODULE_SRC)
+	@echo "编译WebSocket简单测试..."
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $^ $(LIBS)
+
+# 编译WebSocket网络测试
+$(WEBSOCKET_NETWORK_TEST): test_websocket_network.c $(MODULE_SRC)
+	@echo "编译WebSocket网络测试..."
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $^ $(LIBS)
+
+# 编译WebSocket并发测试
+$(WEBSOCKET_CONCURRENT_TEST): test_websocket_concurrent.c $(MODULE_SRC)
+	@echo "编译WebSocket并发测试..."
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $^ $(LIBS)
+
+# 编译WebSocket性能测试
+$(WEBSOCKET_PERFORMANCE_TEST): test_websocket_performance.c $(MODULE_SRC)
+	@echo "编译WebSocket性能测试..."
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $^ $(LIBS)
+
+# 运行WebSocket简单测试
+run_websocket_simple: $(WEBSOCKET_SIMPLE_TEST)
+	@echo "运行WebSocket简单测试..."
+	./$(WEBSOCKET_SIMPLE_TEST)
+
+# 运行WebSocket网络测试
+run_websocket_network: $(WEBSOCKET_NETWORK_TEST)
+	@echo "运行WebSocket网络测试..."
+	./$(WEBSOCKET_NETWORK_TEST)
+
+# 运行WebSocket并发测试
+run_websocket_concurrent: $(WEBSOCKET_CONCURRENT_TEST)
+	@echo "运行WebSocket并发测试..."
+	./$(WEBSOCKET_CONCURRENT_TEST)
+
+# 运行WebSocket性能测试
+run_websocket_performance: $(WEBSOCKET_PERFORMANCE_TEST)
+	@echo "运行WebSocket性能测试..."
+	./$(WEBSOCKET_PERFORMANCE_TEST)
+
+# 运行所有WebSocket测试
+run_websocket_tests: run_websocket_simple run_websocket_network run_websocket_concurrent run_websocket_performance
+
+.PHONY: all setup build test clean run install help web_test run_web_test websocket_tests run_websocket_simple run_websocket_network run_websocket_concurrent run_websocket_performance run_websocket_tests

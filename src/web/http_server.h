@@ -3,9 +3,23 @@
 
 #include <time.h>
 #include <stddef.h>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <windows.h>
+#include <pthread.h>
+#pragma comment(lib, "ws2_32.lib")
+#else
+#include <pthread.h>
+#endif
+
 #include "../satellite/satellite.h"
 #include "../aircraft/aircraft.h"
 #include "../obstruction/obstruction.h"
+
+/* 前向声明 */
+struct WebSocketServer;
 
 /* HTTP方法类型 */
 typedef enum {
@@ -29,7 +43,8 @@ typedef struct {
     HttpMethod method;
     char* path;
     char* query_string;
-    char* headers;
+    char** headers;
+    int header_count;
     char* body;
     int content_length;
 } HttpRequest;
@@ -76,6 +91,7 @@ typedef struct {
     time_t start_time;
     int request_count;
     int error_count;
+    int active_connections;
     double cpu_usage;
     double memory_usage;
     ServerStats stats;
@@ -87,6 +103,10 @@ typedef struct {
     char* method;
     char* parameters;
     char* body;
+    time_t start_time;
+    time_t end_time;
+    int satellite_prn;
+    int trajectory_id;
 } ApiRequestParams;
 
 /* API响应数据 */
@@ -95,6 +115,8 @@ typedef struct {
     char* message;
     char* data;
     int status_code;
+    time_t timestamp;
+    char error[512];
 } ApiResponseData;
 
 /* HTTP服务器 */
@@ -106,6 +128,16 @@ typedef struct {
     AircraftGeometry* geometry;
     int server_socket;
     int is_running;
+    pthread_t server_thread;
+    
+    /* 回调函数 */
+    HttpRequestHandler request_handler;
+    WebSocketHandler websocket_handler;
+    FileUploadHandler upload_handler;
+    
+    /* WebSocket支持 */
+    struct WebSocketServer* websocket_server;
+    int enable_websocket;
 } HttpServer;
 
 /* 函数声明 */
@@ -119,6 +151,10 @@ int http_server_set_data(HttpServer* server,
                         SatelliteData* satellite_data,
                         FlightTrajectory* trajectory,
                         AircraftGeometry* geometry);
+
+int http_server_enable_websocket(HttpServer* server, int enable);
+int http_server_websocket_broadcast(HttpServer* server, const char* message);
+int http_server_websocket_send_status(HttpServer* server);
 int http_server_set_handlers(struct HttpServer* server,
                            HttpRequestHandler request_handler,
                            WebSocketHandler websocket_handler,

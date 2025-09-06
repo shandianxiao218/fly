@@ -21,7 +21,8 @@ typedef struct {
     HttpMethod method;
     char* path;
     char* query_string;
-    char* headers;
+    char** headers;
+    int header_count;
     char* body;
     int content_length;
 } HttpRequest;

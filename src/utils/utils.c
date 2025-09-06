@@ -612,7 +612,7 @@ const char* error_to_string(ErrorCode code) {
         case ERROR_NETWORK: return "网络错误";
         case ERROR_CALCULATION: return "计算错误";
         case ERROR_PARAMETER: return "参数错误";
-        case ERROR_TIMEOUT: return "超时错误";
+        case ERROR_TIMEOUT_VALUE: return "超时错误";
         case ERROR_SYSTEM: return "系统错误";
         default: return "未知错误";
     }

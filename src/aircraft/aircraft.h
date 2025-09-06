@@ -41,6 +41,7 @@ typedef struct {
 
 /* 飞行轨迹 */
 typedef struct {
+    int trajectory_id;          /* 轨迹ID */
     TrajectoryPoint* points;    /* 轨迹点数组 */
     int point_count;           /* 轨迹点数量 */
     int max_points;            /* 最大轨迹点数量 */

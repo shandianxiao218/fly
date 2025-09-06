@@ -7,10 +7,8 @@
 #include <string.h>
 #include <time.h>
 
-/* 前向声明以避免循环依赖 */
-typedef struct HttpServer HttpServer;
-typedef struct HttpRequest HttpRequest;
-typedef struct HttpResponse HttpResponse;
+/* 包含HTTP服务器定义 */
+#include "http_server.h"
 
 /* WebSocket消息类型枚举 */
 typedef enum {
@@ -20,11 +18,11 @@ typedef enum {
     WS_MESSAGE_COMMAND = 4        /* 命令消息 */
 } WebSocketMessageType;
 
-/* WebSocket回调函数类型 */
-typedef int (*WebSocketHandler)(const struct WebSocketMessage* message);
-
 /* WebSocket消息结构前向声明 */
 struct WebSocketMessage;
+
+/* WebSocket回调函数类型 */
+typedef int (*WebSocketMessageHandler)(const struct WebSocketMessage* message);
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -133,9 +131,9 @@ typedef struct WebSocketServer {
     int is_running;                /* 是否运行中 */
     
     /* 回调函数 */
-    WebSocketHandler message_handler;
-    WebSocketHandler connect_handler;
-    WebSocketHandler disconnect_handler;
+    WebSocketMessageHandler message_handler;
+    WebSocketMessageHandler connect_handler;
+    WebSocketMessageHandler disconnect_handler;
     
     /* 统计信息 */
     int total_connections;
@@ -208,9 +206,9 @@ int websocket_get_total_messages(WebSocketServer* server, int* sent, int* receiv
 
 /* WebSocket回调设置 */
 int websocket_set_handlers(WebSocketServer* server,
-                         WebSocketHandler message_handler,
-                         WebSocketHandler connect_handler,
-                         WebSocketHandler disconnect_handler);
+                         WebSocketMessageHandler message_handler,
+                         WebSocketMessageHandler connect_handler,
+                         WebSocketMessageHandler disconnect_handler);
 
 /* WebSocket连接管理 */
 int websocket_add_connection(WebSocketServer* server, WebSocketConnection* connection);
