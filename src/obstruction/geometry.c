@@ -4,6 +4,10 @@
 #include <string.h>
 #include <stdio.h>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 /**
  * @brief 创建3D向量
  * @param x X坐标
@@ -255,8 +259,8 @@ int ray_box_intersection(const Ray* ray, const ObstructionBody* box,
     
     // 计算交点
     if (intersection) {
-        Vector3D local_intersection = vector3d_add(&local_origin, 
-                                                   vector3d_multiply(&ray->direction, t_min));
+        Vector3D direction_multiplied = vector3d_multiply(&ray->direction, t_min);
+        Vector3D local_intersection = vector3d_add(&local_origin, &direction_multiplied);
         *intersection = vector3d_add(&local_intersection, &box->center);
     }
     
