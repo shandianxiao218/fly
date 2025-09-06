@@ -546,7 +546,7 @@ void TestUtilsTime(CuTest* tc) {
     CuAssertTrue(tc, jd > 0);
     
     time_t converted_back = julian_date_to_time(jd);
-    CuAssertTrue(tc, labs(converted_back - current_time) < 1);
+    CuAssertTrue(tc, llabs(converted_back - current_time) < 1);
 }
 
 void TestUtilsCoordinate(CuTest* tc) {

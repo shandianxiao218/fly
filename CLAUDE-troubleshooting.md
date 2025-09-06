@@ -605,10 +605,139 @@ perf report
 time ./program
 ```
 
+### 10. 测试套件集成问题
+
+#### 问题18: 完整测试套件运行失败
+**症状**: `make test` 命令执行失败，各模块独立测试通过但集成测试失败  
+**错误信息**: 测试程序编译成功但运行时出现错误  
+**常见原因**:
+- 模块间依赖关系冲突
+- 全局状态初始化问题
+- 内存分配/释放冲突
+- 静态变量初始化顺序问题
+
+**诊断方法**:
+```bash
+# 检查编译警告
+make clean && make test 2>&1 | grep -i warning
+
+# 检查模块间的符号冲突
+nm build/test_runner.exe | grep ' T ' | sort
+
+# 检查静态初始化问题
+gdb -ex run -ex bt --batch ./build/test_runner.exe
+
+# 检查内存问题
+valgrind --tool=memcheck --leak-check=full ./build/test_runner.exe
+```
+
+**解决方案**:
+```c
+// 1. 检查模块初始化顺序
+void test_module_initialization() {
+    // 确保按正确顺序初始化模块
+    CuAssertIntEquals(tc, ERROR_SUCCESS, logger_init("test.log", LOG_LEVEL_DEBUG));
+    CuAssertIntEquals(tc, ERROR_SUCCESS, satellite_module_init());
+    CuAssertIntEquals(tc, ERROR_SUCCESS, aircraft_module_init());
+    CuAssertIntEquals(tc, ERROR_SUCCESS, obstruction_module_init());
+}
+
+// 2. 隔离测试环境
+void test_with_clean_state() {
+    // 清理全局状态
+    reset_global_state();
+    
+    // 重新初始化
+    init_test_environment();
+    
+    // 执行测试
+    int result = function_under_test();
+    
+    // 清理
+    cleanup_test_environment();
+}
+
+// 3. 使用测试替身隔离依赖
+typedef struct {
+    int (*mock_init)(void);
+    int (*mock_process)(void* input, void* output);
+    void (*mock_cleanup)(void);
+} MockInterface;
+
+int test_with_mock(MockInterface* mock) {
+    mock->mock_init();
+    int result = mock->mock_process(input, output);
+    mock->mock_cleanup();
+    return result;
+}
+```
+
+**预防措施**:
+```c
+// 模块初始化状态管理
+typedef struct {
+    int logger_initialized;
+    int satellite_initialized;
+    int aircraft_initialized;
+    int obstruction_initialized;
+} ModuleState;
+
+static ModuleState global_module_state = {0};
+
+int ensure_module_initialized(ModuleType type) {
+    switch (type) {
+        case MODULE_LOGGER:
+            if (!global_module_state.logger_initialized) {
+                logger_init("test.log", LOG_LEVEL_DEBUG);
+                global_module_state.logger_initialized = 1;
+            }
+            break;
+        // 其他模块...
+    }
+    return ERROR_SUCCESS;
+}
+
+// 测试前清理
+void test_setup() {
+    memset(&global_module_state, 0, sizeof(global_module_state));
+    cleanup_all_resources();
+}
+```
+
+#### 问题19: 模块间接口不匹配
+**症状**: 模块单独测试通过，但集成时出现接口错误  
+**可能原因**:
+- 头文件版本不一致
+- 结构体定义差异
+- 函数签名不匹配
+- 宏定义冲突
+
+**解决方案**:
+```c
+// 统一接口定义
+// 在公共头文件中定义
+typedef struct {
+    int version;
+    int (*init)(const void* config);
+    int (*process)(const void* input, void* output);
+    int (*cleanup)(void);
+} ModuleInterface;
+
+// 版本检查
+int check_interface_compatibility(const ModuleInterface* iface) {
+    if (iface->version != MODULE_INTERFACE_VERSION) {
+        LOG_ERROR("接口版本不匹配: 期望 %d, 实际 %d", 
+                 MODULE_INTERFACE_VERSION, iface->version);
+        return ERROR_INTERFACE_MISMATCH;
+    }
+    return ERROR_SUCCESS;
+}
+```
+
 ---
 
-**文档版本**: 1.0  
+**文档版本**: 1.1  
 **创建日期**: 2025-09-06  
-**最后更新**: 2025-09-06  
-**状态**: 故障排除指南已创建  
+**最后更新**: 2025-09-06 19:30:00  
+**状态**: 添加了测试套件集成问题解决方案  
 **下次更新**: 新的问题解决方案时
